@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🅿 Sorteio de Vagas — Condomínio</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink:      #0d0d0d;
+    --paper:    #f5f0e8;
+    --asphalt:  #1a1a1a;
+    --stripe:   #f0c419;
+    --stripe2:  #e8a800;
+    --muted:    #6b6560;
+    --success:  #2d7a3a;
+    --wait:     #8b4513;
+    --border:   #c8c0b0;
+    --card:     #faf7f2;
+    --red:      #c0392b;
+    --pcd:      #1565c0;
+    --pcd-bg:   #e3f0fd;
+    --pcd-bdr:  #90bce8;
+    --pcd-dark: #0d47a1;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--paper); color: var(--ink); font-family: 'DM Sans', sans-serif; min-height: 100vh; overflow-x: hidden; }
+  body::before {
+    content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(0,0,0,.04) 39px, rgba(0,0,0,.04) 40px),
+      repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(0,0,0,.04) 39px, rgba(0,0,0,.04) 40px);
+  }
+
+  /* ── Topbar ── */
+  .topbar { background: var(--asphalt); padding: 0 2rem; display: flex; align-items: center; gap: 1rem; height: 56px; position: relative; z-index: 10; border-bottom: 4px solid var(--stripe); }
+  .topbar-badge { font-family: 'Bebas Neue', sans-serif; font-size: 2rem; color: var(--stripe); letter-spacing: 2px; line-height: 1; }
+  .topbar-title { font-family: 'Bebas Neue', sans-serif; font-size: 1.3rem; color: #fff; letter-spacing: 3px; }
+  .topbar-right { margin-left: auto; font-family: 'DM Mono', monospace; font-size: .75rem; color: #888; letter-spacing: 1px; }
+
+  /* ── Wrapper ── */
+  .wrapper { position: relative; z-index: 1; max-width: 960px; margin: 0 auto; padding: 3rem 1.5rem 5rem; }
+
+  /* ── Hero ── */
+  .hero { margin-bottom: 2.5rem; }
+  .hero h1 { font-family: 'Bebas Neue', sans-serif; font-size: clamp(3rem, 8vw, 5.5rem); line-height: .9; color: var(--asphalt); letter-spacing: 2px; }
+  .hero h1 span { color: var(--stripe); display: inline-block; position: relative; }
+  .hero h1 span::after { content: ''; position: absolute; bottom: 2px; left: 0; right: 0; height: 6px; background: var(--stripe); transform: skewX(-8deg); }
+  .hero p { margin-top: .8rem; font-size: .9rem; color: var(--muted); font-family: 'DM Mono', monospace; }
+
+  /* ── Card ── */
+  .card { background: var(--card); border: 1.5px solid var(--border); border-radius: 2px; padding: 1.8rem 2rem; margin-bottom: 1.4rem; box-shadow: 4px 4px 0 var(--border); transition: box-shadow .15s, transform .15s; }
+  .card:hover { box-shadow: 6px 6px 0 var(--border); transform: translate(-1px,-1px); }
+  .card.pcd-card { border-color: var(--pcd-bdr); box-shadow: 4px 4px 0 var(--pcd-bdr); background: #f0f6ff; }
+  .card.pcd-card:hover { box-shadow: 6px 6px 0 var(--pcd-bdr); }
+
+  .card-label { font-family: 'Bebas Neue', sans-serif; font-size: 1.05rem; letter-spacing: 3px; color: var(--muted); margin-bottom: 1.2rem; display: flex; align-items: center; gap: .5rem; }
+  .card-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .card-label.pcd { color: var(--pcd); }
+  .card-label.pcd::after { background: var(--pcd-bdr); }
+
+  /* ── Input grid ── */
+  .input-row { display: grid; gap: 1rem; }
+  .cols-4 { grid-template-columns: repeat(4, 1fr); }
+  .cols-3 { grid-template-columns: repeat(3, 1fr); }
+  .cols-2 { grid-template-columns: repeat(2, 1fr); }
+  @media(max-width: 660px) { .cols-4, .cols-3 { grid-template-columns: 1fr 1fr; } }
+  @media(max-width: 380px) { .cols-4, .cols-3, .cols-2 { grid-template-columns: 1fr; } }
+
+  .field label { display: block; font-family: 'DM Mono', monospace; font-size: .7rem; letter-spacing: 2px; color: var(--muted); margin-bottom: .4rem; text-transform: uppercase; }
+  .field input, .field select {
+    width: 100%; background: var(--paper); border: 1.5px solid var(--border); border-radius: 1px;
+    padding: .65rem .9rem; font-family: 'Bebas Neue', sans-serif; font-size: 1.8rem;
+    letter-spacing: 2px; color: var(--asphalt); outline: none; transition: border-color .15s; appearance: none;
+  }
+  .field input:focus, .field select:focus { border-color: var(--stripe); box-shadow: 0 0 0 3px rgba(240,196,25,.18); }
+  .field input::placeholder { color: #ccc; }
+  .field .hint { font-family: 'DM Mono', monospace; font-size: .67rem; color: var(--muted); margin-top: .3rem; }
+
+  /* ── Preview bar ── */
+  .preview-bar { display: none; background: var(--asphalt); border-radius: 2px; padding: .7rem 1rem; margin-top: 1.2rem; font-family: 'DM Mono', monospace; font-size: .78rem; color: #aaa; letter-spacing: 1px; gap: 1.5rem; flex-wrap: wrap; }
+  .preview-bar.show { display: flex; }
+  .preview-bar strong { color: var(--stripe); }
+  .preview-bar strong.pcd { color: #6ab0f5; }
+
+  /* ── Bloco chips ── */
+  .blocos-visual { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1rem; }
+  .bloco-chip { display: flex; flex-direction: column; align-items: center; background: var(--asphalt); color: var(--stripe); border-radius: 2px; padding: .4rem .8rem; font-family: 'Bebas Neue', sans-serif; font-size: 1rem; letter-spacing: 2px; }
+  .bloco-chip small { font-family: 'DM Mono', monospace; font-size: .6rem; color: #888; letter-spacing: 1px; }
+
+  /* ── PCD Section ── */
+  .pcd-intro { display: flex; align-items: flex-start; gap: 1rem; margin-bottom: 1.4rem; }
+  .pcd-icon { font-size: 2.2rem; line-height: 1; flex-shrink: 0; }
+  .pcd-intro-text h3 { font-family: 'Bebas Neue', sans-serif; font-size: 1.2rem; letter-spacing: 2px; color: var(--pcd); }
+  .pcd-intro-text p { font-size: .83rem; color: var(--muted); margin-top: .3rem; line-height: 1.5; font-family: 'DM Mono', monospace; }
+
+  /* ── PCD add form ── */
+  .pcd-add-row { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr auto; gap: .6rem; align-items: end; margin-bottom: 1rem; }
+  @media(max-width: 660px) { .pcd-add-row { grid-template-columns: 1fr 1fr 1fr; } .pcd-add-row .btn-add { grid-column: 1/-1; } }
+
+  .pcd-add-row .field label { color: var(--pcd); }
+  .pcd-add-row .field input, .pcd-add-row .field select { font-size: 1.3rem; padding: .55rem .7rem; }
+
+  .btn-add {
+    background: var(--pcd); color: #fff; border: none; border-radius: 1px;
+    padding: .6rem 1.1rem; font-family: 'Bebas Neue', sans-serif; font-size: 1rem; letter-spacing: 2px;
+    cursor: pointer; transition: background .15s; white-space: nowrap;
+    box-shadow: 3px 3px 0 var(--pcd-dark);
+  }
+  .btn-add:hover { background: var(--pcd-dark); }
+  .btn-add:active { transform: translate(2px,2px); box-shadow: 1px 1px 0 var(--pcd-dark); }
+
+  /* ── PCD listas ── */
+  .pcd-lists { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: .5rem; }
+  @media(max-width: 560px) { .pcd-lists { grid-template-columns: 1fr; } }
+
+  .pcd-list-box { background: var(--paper); border: 1px solid var(--pcd-bdr); border-radius: 2px; padding: .8rem 1rem; }
+  .pcd-list-title { font-family: 'Bebas Neue', sans-serif; font-size: .9rem; letter-spacing: 2px; color: var(--pcd); margin-bottom: .6rem; display: flex; align-items: center; gap: .4rem; }
+  .pcd-list-empty { font-family: 'DM Mono', monospace; font-size: .73rem; color: var(--muted); font-style: italic; }
+
+  .pcd-tag {
+    display: inline-flex; align-items: center; gap: .4rem;
+    background: var(--pcd-bg); border: 1px solid var(--pcd-bdr);
+    color: var(--pcd-dark); border-radius: 2px; padding: .22rem .55rem;
+    font-family: 'DM Mono', monospace; font-size: .78rem; font-weight: 500;
+    margin: .2rem .15rem;
+  }
+  .pcd-tag .rm { cursor: pointer; color: var(--pcd); font-size: .85rem; line-height: 1; transition: color .15s; }
+  .pcd-tag .rm:hover { color: var(--red); }
+
+  .pcd-vaga-tag {
+    display: inline-flex; align-items: center; gap: .4rem;
+    background: var(--pcd); color: #fff; border-radius: 2px; padding: .22rem .55rem;
+    font-family: 'Bebas Neue', sans-serif; font-size: .85rem; letter-spacing: 1px;
+    margin: .2rem .15rem;
+  }
+  .pcd-vaga-tag .rm { cursor: pointer; color: rgba(255,255,255,.7); font-size: .85rem; line-height: 1; transition: color .15s; }
+  .pcd-vaga-tag .rm:hover { color: #fff; }
+
+  /* ── CTA button ── */
+  .btn-sortear {
+    display: flex; align-items: center; justify-content: center; gap: .8rem;
+    width: 100%; background: var(--asphalt); color: var(--stripe);
+    border: none; border-radius: 1px; padding: 1.1rem;
+    font-family: 'Bebas Neue', sans-serif; font-size: 1.6rem; letter-spacing: 4px;
+    cursor: pointer; position: relative; overflow: hidden;
+    transition: background .2s, transform .1s; box-shadow: 4px 4px 0 #333;
+  }
+  .btn-sortear:hover { background: #111; transform: translate(-1px,-1px); box-shadow: 6px 6px 0 #333; }
+  .btn-sortear:active { transform: translate(2px,2px); box-shadow: 2px 2px 0 #333; }
+  .btn-sortear::before { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,.03) 10px, rgba(255,255,255,.03) 20px); }
+  .btn-sortear .dice { font-size: 1.4rem; transition: transform .3s; }
+  .btn-sortear:hover .dice { transform: rotate(30deg) scale(1.2); }
+  .btn-sortear:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+  /* ── Error ── */
+  .error-msg { color: var(--red); font-family: 'DM Mono', monospace; font-size: .8rem; letter-spacing: 1px; margin-bottom: .8rem; display: none; }
+
+  /* ── Stripe divider ── */
+  .stripe-divider { height: 8px; margin: 2rem 0; border-radius: 1px; background: repeating-linear-gradient(90deg, var(--stripe) 0, var(--stripe) 20px, var(--asphalt) 20px, var(--asphalt) 40px); }
+
+  /* ── Overlay ── */
+  .raffle-overlay { display: none; position: fixed; inset: 0; z-index: 100; background: rgba(10,10,10,.93); flex-direction: column; align-items: center; justify-content: center; gap: 2rem; }
+  .raffle-overlay.active { display: flex; }
+  .drum-container { width: 340px; background: var(--asphalt); border: 3px solid var(--stripe); border-radius: 4px; padding: 1.8rem; text-align: center; box-shadow: 0 0 50px rgba(240,196,25,.25); }
+  .drum-title { font-family: 'Bebas Neue', sans-serif; font-size: 1rem; letter-spacing: 4px; color: var(--stripe); margin-bottom: 1rem; }
+  .drum-slot { font-family: 'Bebas Neue', sans-serif; font-size: 1.7rem; letter-spacing: 3px; color: #fff; height: 2.4rem; overflow: hidden; position: relative; }
+  .drum-slot .rolling { position: absolute; top: 0; left: 0; right: 0; animation: drumroll .09s linear infinite; }
+  @keyframes drumroll { 0%{transform:translateY(0);opacity:1} 49%{transform:translateY(-60%);opacity:0} 50%{transform:translateY(60%);opacity:0} 100%{transform:translateY(0);opacity:1} }
+  .drum-bar { margin-top: .8rem; height: 3px; background: #333; border-radius: 2px; overflow: hidden; }
+  .drum-bar-fill { height: 100%; background: var(--stripe); transition: width .4s ease; }
+  .drum-progress { margin-top: .5rem; font-family: 'DM Mono', monospace; font-size: .73rem; color: #888; letter-spacing: 2px; }
+
+  /* ── Results ── */
+  #results-section { display: none; }
+  .results-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 1.5rem; gap: 1rem; flex-wrap: wrap; }
+  .results-title { font-family: 'Bebas Neue', sans-serif; font-size: 2.5rem; letter-spacing: 3px; color: var(--asphalt); line-height: 1; }
+  .results-meta { font-family: 'DM Mono', monospace; font-size: .72rem; color: var(--muted); line-height: 1.9; text-align: right; }
+
+  /* ── Legend ── */
+  .legend { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.2rem; align-items: center; }
+  .legend-item { display: flex; align-items: center; gap: .4rem; font-family: 'DM Mono', monospace; font-size: .73rem; color: var(--muted); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 1px; flex-shrink: 0; }
+  .legend-dot.sorteio { background: var(--asphalt); }
+  .legend-dot.pcd { background: var(--pcd); }
+
+  /* ── Filter row ── */
+  .filter-row { display: flex; gap: .45rem; flex-wrap: wrap; margin-bottom: 1rem; align-items: center; }
+  .filter-label { font-family: 'DM Mono', monospace; font-size: .72rem; color: var(--muted); letter-spacing: 1px; margin-right: .2rem; }
+  .filter-btn { font-family: 'Bebas Neue', sans-serif; font-size: .9rem; letter-spacing: 2px; padding: .28rem .75rem; border: 1.5px solid var(--border); background: var(--paper); color: var(--ink); cursor: pointer; border-radius: 1px; transition: all .15s; }
+  .filter-btn:hover, .filter-btn.active { background: var(--asphalt); color: var(--stripe); border-color: var(--asphalt); }
+  .filter-btn.pcd-filter { border-color: var(--pcd-bdr); color: var(--pcd); }
+  .filter-btn.pcd-filter:hover, .filter-btn.pcd-filter.active { background: var(--pcd); color: #fff; border-color: var(--pcd); }
+
+  /* ── Result table ── */
+  .result-table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; }
+  .result-table th { font-family: 'DM Mono', monospace; font-size: .67rem; letter-spacing: 2px; color: var(--muted); text-align: left; padding: .5rem .75rem; border-bottom: 2px solid var(--border); text-transform: uppercase; white-space: nowrap; }
+  .result-table td { padding: .58rem .75rem; border-bottom: 1px solid var(--border); font-size: .87rem; }
+  .result-table tbody tr { opacity: 0; transform: translateX(-10px); transition: opacity .3s, transform .3s; }
+  .result-table tbody tr.visible { opacity: 1; transform: none; }
+  .result-table tbody tr:hover { background: rgba(240,196,25,.05); }
+  .result-table tbody tr.row-pcd { background: var(--pcd-bg); }
+  .result-table tbody tr.row-pcd:hover { background: #d4e8fb; }
+  .result-table tbody tr.hidden-row { display: none; }
+
+  /* ── Tags ── */
+  .tag-vaga { display: inline-block; background: var(--asphalt); color: var(--stripe); font-family: 'Bebas Neue', sans-serif; font-size: .95rem; letter-spacing: 2px; padding: .15rem .6rem; border-radius: 2px; white-space: nowrap; }
+  .tag-vaga.pcd { background: var(--pcd); color: #fff; }
+  .tag-bloco { display: inline-block; font-family: 'Bebas Neue', sans-serif; font-size: .88rem; letter-spacing: 1px; padding: .12rem .5rem; border-radius: 2px; background: var(--border); color: var(--asphalt); white-space: nowrap; }
+  .tag-id { font-family: 'DM Mono', monospace; font-size: .82rem; font-weight: 500; color: var(--asphalt); letter-spacing: 1px; }
+  .tag-ok { display: inline-flex; align-items: center; gap: .3rem; background: #e8f5eb; color: var(--success); font-family: 'DM Mono', monospace; font-size: .7rem; letter-spacing: 1px; padding: .2rem .6rem; border-radius: 20px; font-weight: 500; white-space: nowrap; }
+  .tag-pcd-status { display: inline-flex; align-items: center; gap: .35rem; background: var(--pcd); color: #fff; font-family: 'DM Mono', monospace; font-size: .7rem; letter-spacing: 1px; padding: .2rem .65rem; border-radius: 20px; font-weight: 500; white-space: nowrap; }
+
+  /* ── Wait list ── */
+  .waitlist-title { font-family: 'Bebas Neue', sans-serif; font-size: 1.2rem; letter-spacing: 3px; color: var(--wait); margin-bottom: 1rem; }
+  .wait-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: .5rem; }
+  .wait-chip { background: #fdf3e7; border: 1px solid #e0c898; border-radius: 2px; padding: .45rem .7rem; font-size: .82rem; display: flex; align-items: center; gap: .5rem; opacity: 0; transform: translateY(8px); transition: opacity .3s, transform .3s; }
+  .wait-chip.visible { opacity: 1; transform: none; }
+  .wait-pos { font-family: 'Bebas Neue', sans-serif; font-size: .85rem; color: var(--wait); min-width: 1.6rem; }
+
+  /* ── Seed ── */
+  .seed-bar { display: flex; align-items: center; gap: .6rem; padding: .6rem .9rem; background: var(--paper); border: 1px solid var(--border); border-radius: 1px; margin-top: 1rem; font-family: 'DM Mono', monospace; font-size: .72rem; color: var(--muted); letter-spacing: 1px; }
+  .seed-val { color: var(--ink); font-weight: 500; }
+
+  /* ── Action buttons ── */
+  .actions { display: flex; gap: .8rem; flex-wrap: wrap; margin-top: 1.2rem; }
+  .btn { padding: .7rem 1.3rem; border: 1.5px solid var(--border); border-radius: 1px; font-family: 'DM Mono', monospace; font-size: .78rem; letter-spacing: 1.5px; cursor: pointer; background: var(--card); color: var(--ink); transition: all .15s; text-transform: uppercase; }
+  .btn:hover { background: var(--asphalt); color: var(--stripe); border-color: var(--asphalt); }
+  .btn-primary { background: var(--asphalt); color: var(--stripe); border-color: var(--asphalt); }
+  .btn-primary:hover { background: #333; }
+
+  @media print {
+    body::before, .topbar, .hero, #config-section, .actions, .stripe-divider, .filter-row, .seed-bar { display: none !important; }
+    #results-section { display: block !important; }
+    .card { box-shadow: none; border: 1px solid #ccc; }
+    .result-table tbody tr { opacity: 1 !important; transform: none !important; }
+    .wait-chip { opacity: 1 !important; transform: none !important; }
+    .hidden-row { display: table-row !important; }
+    .row-pcd { background: #e8f0fb !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-badge">🅿</div>
+  <div class="topbar-title">Sorteio de Vagas — Condomínio</div>
+  <div class="topbar-right" id="clock">--:--:--</div>
+</div>
+
+<div class="wrapper">
+
+  <div class="hero">
+    <h1>SORTEIO<br>DE <span>VAGAS</span></h1>
+    <p>// Sorteio por bloco · andar · apartamento · com vagas PCD fixas</p>
+  </div>
+
+  <!-- ═══════════════ CONFIGURAÇÃO ═══════════════ -->
+  <section id="config-section">
+
+    <!-- PASSO 1 — Estrutura -->
+    <div class="card">
+      <div class="card-label">01 — Estrutura do Condomínio</div>
+      <div class="input-row cols-4">
+        <div class="field">
+          <label>Blocos / Torres</label>
+          <input type="number" id="num-blocos" min="1" max="26" placeholder="4" oninput="atualizarPreview()">
+          <div class="hint">Máx. 26 (A → Z)</div>
+        </div>
+        <div class="field">
+          <label>Andares por bloco</label>
+          <input type="number" id="num-andares" min="1" max="99" placeholder="10" oninput="atualizarPreview()">
+        </div>
+        <div class="field">
+          <label>Aptos por andar</label>
+          <input type="number" id="num-por-andar" min="1" max="20" placeholder="4" oninput="atualizarPreview()">
+        </div>
+        <div class="field">
+          <label>Vagas p/ sorteio</label>
+          <input type="number" id="num-vagas" min="1" max="9999" placeholder="60" oninput="atualizarPreview()">
+          <div class="hint">Excluindo vagas PCD</div>
+        </div>
+      </div>
+
+      <div class="preview-bar" id="preview-bar">
+        <span>🏢 Total: <strong id="prev-total">—</strong> aptos</span>
+        <span>🅿 Sorteio: <strong id="prev-vagas">—</strong> vagas</span>
+        <span>♿ PCD: <strong class="pcd" id="prev-pcd">0</strong> vagas fixas</span>
+        <span>⏳ Espera: <strong id="prev-espera">—</strong></span>
+      </div>
+      <div class="blocos-visual" id="blocos-visual"></div>
+    </div>
+
+    <!-- PASSO 2 — PCD -->
+    <div class="card pcd-card">
+      <div class="card-label pcd">02 — Vagas e Apartamentos PCD (fixos)</div>
+
+      <div class="pcd-intro">
+        <div class="pcd-icon">♿</div>
+        <div class="pcd-intro-text">
+          <h3>Cadastro de PCD</h3>
+          <p>Informe cada apartamento PCD e sua vaga fixa. Eles <strong>não entrarão no sorteio</strong> e serão exibidos separadamente no resultado em azul.</p>
+        </div>
+      </div>
+
+      <!-- Formulário de adição -->
+      <div class="pcd-add-row">
+        <div class="field">
+          <label>Bloco</label>
+          <select id="pcd-bloco"><option value="">—</option></select>
+        </div>
+        <div class="field">
+          <label>Andar</label>
+          <input type="number" id="pcd-andar" min="1" placeholder="1">
+        </div>
+        <div class="field">
+          <label>Nº Apto</label>
+          <input type="number" id="pcd-num" min="1" placeholder="2">
+        </div>
+        <div class="field">
+          <label>Vaga PCD</label>
+          <input type="text" id="pcd-vaga" placeholder="PCD-01" style="font-size:1.1rem">
+        </div>
+        <button class="btn-add" onclick="adicionarPCD()">+ Adicionar</button>
+      </div>
+      <div id="pcd-error" style="color:var(--red);font-family:'DM Mono',monospace;font-size:.78rem;margin-bottom:.5rem;display:none"></div>
+
+      <!-- Listas cadastradas -->
+      <div class="pcd-lists">
+        <div class="pcd-list-box">
+          <div class="pcd-list-title">♿ Apartamentos PCD <span id="pcd-apto-count" style="font-family:'DM Mono',monospace;font-size:.75rem;color:var(--muted)">(0)</span></div>
+          <div id="pcd-apto-list"><span class="pcd-list-empty">Nenhum cadastrado</span></div>
+        </div>
+        <div class="pcd-list-box">
+          <div class="pcd-list-title">🅿 Vagas PCD Fixas <span id="pcd-vaga-count" style="font-family:'DM Mono',monospace;font-size:.75rem;color:var(--muted)">(0)</span></div>
+          <div id="pcd-vaga-list"><span class="pcd-list-empty">Nenhuma cadastrada</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PASSO 3 — Sortear -->
+    <div class="card" style="padding: 1.4rem 2rem;">
+      <div id="error-msg" class="error-msg"></div>
+      <button class="btn-sortear" id="btn-sortear" onclick="iniciarSorteio()">
+        <span class="dice">🎲</span>
+        REALIZAR SORTEIO
+      </button>
+    </div>
+
+  </section>
+
+  <!-- ═══════════════ RESULTADO ═══════════════ -->
+  <div class="stripe-divider" id="stripe-div" style="display:none"></div>
+
+  <section id="results-section">
+    <div class="card">
+
+      <div class="results-header">
+        <div class="results-title">🏆 RESULTADO</div>
+        <div class="results-meta" id="results-meta"></div>
+      </div>
+
+      <!-- Legenda -->
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot sorteio"></div> Sorteado</div>
+        <div class="legend-item"><div class="legend-dot pcd"></div> PCD — Vaga Fixa</div>
+      </div>
+
+      <!-- Filtros -->
+      <div class="filter-row" id="filter-row"></div>
+
+      <table class="result-table">
+        <thead>
+          <tr>
+            <th>Vaga</th>
+            <th>Identificação</th>
+            <th>Bloco</th>
+            <th>Andar</th>
+            <th>Apto</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="result-tbody"></tbody>
+      </table>
+
+      <div id="waitlist-section" style="display:none">
+        <div class="waitlist-title">⏳ Lista de Espera</div>
+        <div class="wait-grid" id="wait-grid"></div>
+      </div>
+
+      <div class="seed-bar">🔑 Semente do sorteio: <span class="seed-val" id="seed-display">—</span></div>
+
+      <div class="actions">
+        <button class="btn btn-primary" onclick="window.print()">🖨 Imprimir</button>
+        <button class="btn" onclick="baixarTxt()">⬇ Salvar .txt</button>
+        <button class="btn" onclick="novoSorteio()">↺ Novo sorteio</button>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<!-- ═══════════════ OVERLAY ═══════════════ -->
+<div class="raffle-overlay" id="raffle-overlay">
+  <div class="drum-container">
+    <div class="drum-title">▸ REALIZANDO SORTEIO</div>
+    <div class="drum-slot"><div class="rolling" id="drum-text">—</div></div>
+    <div class="drum-bar"><div class="drum-bar-fill" id="drum-fill" style="width:0%"></div></div>
+    <div class="drum-progress" id="drum-progress">Embaralhando participantes…</div>
+  </div>
+</div>
+
+<script>
+// ── Clock ─────────────────────────────────────────────────────────────────────
+(function(){ const el = document.getElementById('clock');
+  setInterval(() => { el.textContent = new Date().toLocaleTimeString('pt-BR'); }, 1000);
+})();
+
+// ── Constantes ────────────────────────────────────────────────────────────────
+const LETRAS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+
+// ── Estado PCD ────────────────────────────────────────────────────────────────
+// pcdItems = [{ bloco, andar, num, vaga, label }]
+let pcdItems = [];
+
+// ── Atualiza select de blocos no formulário PCD ───────────────────────────────
+function atualizarSelectBlocos() {
+  const b   = parseInt(document.getElementById('num-blocos').value) || 0;
+  const sel = document.getElementById('pcd-bloco');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">—</option>';
+  for (let i = 0; i < Math.min(b, 26); i++) {
+    const opt = document.createElement('option');
+    opt.value = LETRAS[i]; opt.textContent = `Bloco ${LETRAS[i]}`;
+    sel.appendChild(opt);
+  }
+  if (cur) sel.value = cur;
+}
+
+// ── Preview dinâmico ──────────────────────────────────────────────────────────
+function atualizarPreview() {
+  const b  = parseInt(document.getElementById('num-blocos').value)    || 0;
+  const an = parseInt(document.getElementById('num-andares').value)   || 0;
+  const pa = parseInt(document.getElementById('num-por-andar').value) || 0;
+  const v  = parseInt(document.getElementById('num-vagas').value)     || 0;
+  const total = b * an * pa;
+  const bar   = document.getElementById('preview-bar');
+  const vis   = document.getElementById('blocos-visual');
+
+  atualizarSelectBlocos();
+
+  if (b > 0 && an > 0 && pa > 0) {
+    const sorteaveis = total - pcdItems.length;
+    document.getElementById('prev-total').textContent  = total;
+    document.getElementById('prev-vagas').textContent  = v > 0 ? Math.min(v, sorteaveis) : '—';
+    document.getElementById('prev-pcd').textContent    = pcdItems.length;
+    document.getElementById('prev-espera').textContent = v > 0 ? Math.max(0, sorteaveis - v) : '—';
+    bar.classList.add('show');
+    vis.innerHTML = '';
+    for (let i = 0; i < Math.min(b, 26); i++) {
+      const pcdN = pcdItems.filter(p => p.bloco === LETRAS[i]).length;
+      const c = document.createElement('div');
+      c.className = 'bloco-chip';
+      c.innerHTML = `Bloco ${LETRAS[i]}<small>${an * pa} aptos${pcdN ? ' · ' + pcdN + ' PCD' : ''}</small>`;
+      vis.appendChild(c);
+    }
+  } else {
+    bar.classList.remove('show');
+    vis.innerHTML = '';
+  }
+}
+
+// ── Adicionar PCD ─────────────────────────────────────────────────────────────
+function adicionarPCD() {
+  const bloco = document.getElementById('pcd-bloco').value;
+  const andar = parseInt(document.getElementById('pcd-andar').value);
+  const num   = parseInt(document.getElementById('pcd-num').value);
+  const vaga  = document.getElementById('pcd-vaga').value.trim().toUpperCase();
+  const err   = document.getElementById('pcd-error');
+  err.style.display = 'none';
+
+  const b  = parseInt(document.getElementById('num-blocos').value)    || 0;
+  const an = parseInt(document.getElementById('num-andares').value)   || 0;
+  const pa = parseInt(document.getElementById('num-por-andar').value) || 0;
+
+  // Validações
+  if (!bloco)                            return showPCDerr('Selecione o bloco.');
+  if (!andar || andar < 1 || andar > an) return showPCDerr(`Andar inválido (1–${an || '?'}).`);
+  if (!num   || num < 1   || num > pa)   return showPCDerr(`Nº do apto inválido (1–${pa || '?'}).`);
+  if (!vaga)                             return showPCDerr('Informe o identificador da vaga PCD.');
+
+  const label = `${andar} ${num} ${bloco}`;
+
+  // Duplicata de apto
+  if (pcdItems.some(p => p.label === label))
+    return showPCDerr(`Apartamento ${label} já cadastrado como PCD.`);
+  // Duplicata de vaga
+  if (pcdItems.some(p => p.vaga === vaga))
+    return showPCDerr(`Vaga "${vaga}" já cadastrada.`);
+
+  pcdItems.push({ bloco, andar, num, vaga, label });
+  renderPCDlists();
+  atualizarPreview();
+
+  // Limpar campos
+  document.getElementById('pcd-andar').value = '';
+  document.getElementById('pcd-num').value   = '';
+  document.getElementById('pcd-vaga').value  = '';
+}
+
+function showPCDerr(msg) {
+  const el = document.getElementById('pcd-error');
+  el.textContent = '⚠ ' + msg;
+  el.style.display = 'block';
+}
+
+function removerPCD(label) {
+  pcdItems = pcdItems.filter(p => p.label !== label);
+  renderPCDlists();
+  atualizarPreview();
+}
+
+function renderPCDlists() {
+  const aList = document.getElementById('pcd-apto-list');
+  const vList = document.getElementById('pcd-vaga-list');
+  const aC    = document.getElementById('pcd-apto-count');
+  const vC    = document.getElementById('pcd-vaga-count');
+
+  aC.textContent = `(${pcdItems.length})`;
+  vC.textContent = `(${pcdItems.length})`;
+
+  if (!pcdItems.length) {
+    aList.innerHTML = '<span class="pcd-list-empty">Nenhum cadastrado</span>';
+    vList.innerHTML = '<span class="pcd-list-empty">Nenhuma cadastrada</span>';
+    return;
+  }
+
+  aList.innerHTML = pcdItems.map(p => `
+    <span class="pcd-tag">
+      ♿ ${p.label}
+      <span class="rm" onclick="removerPCD('${p.label}')" title="Remover">✕</span>
+    </span>`).join('');
+
+  vList.innerHTML = pcdItems.map(p => `
+    <span class="pcd-vaga-tag">
+      ${p.vaga}
+      <span class="rm" onclick="removerPCD('${p.label}')" title="Remover">✕</span>
+    </span>`).join('');
+}
+
+// ── Gerar apartamentos ────────────────────────────────────────────────────────
+function gerarApartamentos(b, an, pa) {
+  const lista = [];
+  const pcdSet = new Set(pcdItems.map(p => p.label));
+  for (let bi = 0; bi < b; bi++) {
+    const letra = LETRAS[bi];
+    for (let ai = 1; ai <= an; ai++) {
+      for (let pi = 1; pi <= pa; pi++) {
+        const label = `${ai} ${pi} ${letra}`;
+        if (!pcdSet.has(label)) {
+          lista.push({ bloco: letra, andar: ai, num: pi, label });
+        }
+      }
+    }
+  }
+  return lista;
+}
+
+// ── Fisher-Yates ──────────────────────────────────────────────────────────────
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// ── Estado global ─────────────────────────────────────────────────────────────
+let sorteioData = null;
+
+// ── Iniciar sorteio ───────────────────────────────────────────────────────────
+function iniciarSorteio() {
+  const b  = parseInt(document.getElementById('num-blocos').value);
+  const an = parseInt(document.getElementById('num-andares').value);
+  const pa = parseInt(document.getElementById('num-por-andar').value);
+  const v  = parseInt(document.getElementById('num-vagas').value);
+  const err = document.getElementById('error-msg');
+  err.style.display = 'none';
+
+  const erros = [];
+  if (!b  || b  < 1 || b  > 26) erros.push('Blocos: entre 1 e 26.');
+  if (!an || an < 1 || an > 99) erros.push('Andares: entre 1 e 99.');
+  if (!pa || pa < 1 || pa > 20) erros.push('Aptos/andar: entre 1 e 20.');
+  if (!v  || v  < 1)             erros.push('Informe a quantidade de vagas para sorteio.');
+  const total      = (b||0) * (an||0) * (pa||0);
+  const sorteaveis = total - pcdItems.length;
+  if (!erros.length && v > sorteaveis)
+    erros.push(`Vagas para sorteio (${v}) excedem aptos disponíveis (${sorteaveis}).`);
+
+  if (erros.length) {
+    err.textContent = '⚠ ' + erros.join('  ');
+    err.style.display = 'block';
+    return;
+  }
+
+  const aptos    = gerarApartamentos(b, an, pa);   // sem os PCDs
+  const seed     = Date.now();
+  const shuffled = shuffle(shuffle(aptos));
+
+  const vagasLst = shuffle(
+    Array.from({ length: v }, (_, i) => `V${String(i+1).padStart(3,'0')}`)
+  );
+
+  const contemplados    = shuffled.slice(0, v).map((apt, i) => ({ vaga: vagasLst[i], pcd: false, ...apt }));
+  contemplados.sort((a, z) => a.vaga.localeCompare(z.vaga));
+  const naoContemplados = shuffled.slice(v);
+
+  // PCDs — numeração própria
+  const pcdContemplados = pcdItems.map(p => ({ ...p, pcd: true }));
+
+  sorteioData = { contemplados, pcdContemplados, naoContemplados, seed, b, an, pa, v, total, aptos, ts: new Date() };
+  rodarAnimacao();
+}
+
+// ── Animação ──────────────────────────────────────────────────────────────────
+function rodarAnimacao() {
+  const overlay  = document.getElementById('raffle-overlay');
+  const drumText = document.getElementById('drum-text');
+  const drumFill = document.getElementById('drum-fill');
+  const drumProg = document.getElementById('drum-progress');
+
+  overlay.classList.add('active');
+  document.getElementById('btn-sortear').disabled = true;
+
+  const aptos = sorteioData.aptos;
+  let step = 0, totalSteps = 34;
+
+  const iv = setInterval(() => {
+    const r = aptos[Math.floor(Math.random() * aptos.length)];
+    drumText.textContent = r.label;
+    drumFill.style.width = `${(step / totalSteps) * 100}%`;
+    drumProg.textContent =
+      step < 10 ? 'Embaralhando participantes…' :
+      step < 24 ? 'Sorteando vagas…' : 'Finalizando resultado…';
+
+    if (++step > totalSteps) {
+      clearInterval(iv);
+      drumText.textContent = '✓';
+      drumFill.style.width = '100%';
+      drumProg.textContent = 'Sorteio concluído!';
+      setTimeout(() => {
+        overlay.classList.remove('active');
+        document.getElementById('btn-sortear').disabled = false;
+        exibirResultado();
+      }, 650);
+    }
+  }, 85);
+}
+
+// ── Exibir resultado ──────────────────────────────────────────────────────────
+function exibirResultado() {
+  const { contemplados, pcdContemplados, naoContemplados, seed, b, an, pa, v, total, ts } = sorteioData;
+
+  document.getElementById('config-section').style.display  = 'none';
+  document.getElementById('stripe-div').style.display      = 'block';
+  document.getElementById('results-section').style.display = 'block';
+  document.getElementById('results-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  document.getElementById('results-meta').innerHTML =
+    `${ts.toLocaleDateString('pt-BR')} ${ts.toLocaleTimeString('pt-BR')}<br>` +
+    `${b} blocos (${LETRAS.slice(0,b).join(' ')}) · ${an} andares · ${pa} aptos/andar · ${total} aptos<br>` +
+    `${v} vagas sorteadas · ${pcdContemplados.length} vagas PCD fixas · ${naoContemplados.length} em espera`;
+
+  // ── Filtros ──
+  const filterRow = document.getElementById('filter-row');
+  filterRow.innerHTML = '';
+  const lbl = document.createElement('span');
+  lbl.className = 'filter-label'; lbl.textContent = 'filtrar:';
+  filterRow.appendChild(lbl);
+
+  const btnTodos = document.createElement('button');
+  btnTodos.className = 'filter-btn active'; btnTodos.textContent = 'Todos';
+  btnTodos.onclick = () => filtrarBloco('TODOS', btnTodos);
+  filterRow.appendChild(btnTodos);
+
+  // Botão PCD
+  if (pcdContemplados.length) {
+    const btnPCD = document.createElement('button');
+    btnPCD.className = 'filter-btn pcd-filter'; btnPCD.textContent = '♿ PCD';
+    btnPCD.onclick = () => filtrarBloco('__PCD__', btnPCD);
+    filterRow.appendChild(btnPCD);
+  }
+
+  const todasLinhas = [...contemplados, ...pcdContemplados];
+  [...new Set(todasLinhas.map(c => c.bloco))].sort().forEach(l => {
+    const btn = document.createElement('button');
+    btn.className = 'filter-btn'; btn.textContent = `Bloco ${l}`;
+    btn.dataset.bloco = l;
+    btn.onclick = () => filtrarBloco(l, btn);
+    filterRow.appendChild(btn);
+  });
+
+  // ── Tabela ──
+  const tbody = document.getElementById('result-tbody');
+  tbody.innerHTML = '';
+  let rowIdx = 0;
+
+  // Linha de separador visual entre sorteio e PCD
+  const renderRow = (item, delay) => {
+    const tr = document.createElement('tr');
+    tr.dataset.bloco = item.bloco;
+    tr.dataset.pcd   = item.pcd ? '1' : '0';
+    if (item.pcd) tr.classList.add('row-pcd');
+
+    const vagaTag    = item.pcd
+      ? `<span class="tag-vaga pcd">♿ ${item.vaga}</span>`
+      : `<span class="tag-vaga">${item.vaga}</span>`;
+    const statusTag  = item.pcd
+      ? `<span class="tag-pcd-status">♿ PCD — Fixo</span>`
+      : `<span class="tag-ok">✔ Sorteado</span>`;
+
+    tr.innerHTML = `
+      <td>${vagaTag}</td>
+      <td><span class="tag-id">${item.label}</span></td>
+      <td><span class="tag-bloco">Bloco ${item.bloco}</span></td>
+      <td style="font-family:'DM Mono',monospace;font-size:.82rem">${item.andar}º andar</td>
+      <td style="font-family:'DM Mono',monospace;font-size:.82rem">Apto ${item.num}</td>
+      <td>${statusTag}</td>`;
+    tbody.appendChild(tr);
+    setTimeout(() => tr.classList.add('visible'), 60 + delay * 50);
+  };
+
+  // Primeiro as vagas sorteadas, depois as PCD
+  contemplados.forEach((item, i) => renderRow(item, i));
+
+  if (pcdContemplados.length) {
+    // Linha separadora
+    const trSep = document.createElement('tr');
+    trSep.dataset.pcd = '1';
+    trSep.innerHTML = `<td colspan="6" style="background:var(--pcd);color:#fff;font-family:'Bebas Neue',sans-serif;font-size:.9rem;letter-spacing:3px;padding:.4rem .75rem;opacity:0;transition:opacity .3s">♿ VAGAS PCD — ATRIBUIÇÃO FIXA</td>`;
+    tbody.appendChild(trSep);
+    setTimeout(() => trSep.classList.add('visible'), 60 + contemplados.length * 50 + 40);
+
+    pcdContemplados.forEach((item, i) => renderRow(item, contemplados.length + 1 + i));
+  }
+
+  // ── Lista de espera ──
+  const ws = document.getElementById('waitlist-section');
+  const wg = document.getElementById('wait-grid');
+  wg.innerHTML = '';
+  if (naoContemplados.length) {
+    ws.style.display = 'block';
+    naoContemplados.forEach((apt, i) => {
+      const chip = document.createElement('div');
+      chip.className = 'wait-chip';
+      chip.innerHTML = `<span class="wait-pos">${i+1}º</span>${apt.label}`;
+      wg.appendChild(chip);
+      const tot = contemplados.length + pcdContemplados.length;
+      setTimeout(() => chip.classList.add('visible'), tot * 50 + 160 + i * 35);
+    });
+  } else { ws.style.display = 'none'; }
+
+  document.getElementById('seed-display').textContent = seed;
+}
+
+// ── Filtrar ───────────────────────────────────────────────────────────────────
+function filtrarBloco(bloco, btnAtivo) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btnAtivo.classList.add('active');
+  document.querySelectorAll('#result-tbody tr').forEach(tr => {
+    if (bloco === 'TODOS') {
+      tr.classList.remove('hidden-row');
+    } else if (bloco === '__PCD__') {
+      tr.classList.toggle('hidden-row', tr.dataset.pcd !== '1');
+    } else {
+      tr.classList.toggle('hidden-row', tr.dataset.bloco !== bloco);
+    }
+  });
+}
+
+// ── Novo sorteio ──────────────────────────────────────────────────────────────
+function novoSorteio() {
+  document.getElementById('config-section').style.display  = 'block';
+  document.getElementById('results-section').style.display = 'none';
+  document.getElementById('stripe-div').style.display      = 'none';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ── Salvar .txt ───────────────────────────────────────────────────────────────
+function baixarTxt() {
+  if (!sorteioData) return;
+  const { contemplados, pcdContemplados, naoContemplados, seed, b, an, pa, v, total, ts } = sorteioData;
+  const sep  = '═'.repeat(76);
+  const sep2 = '─'.repeat(76);
+  const col  = (s, n) => String(s).padEnd(n);
+
+  const linhas = [
+    sep,
+    '  RESULTADO DO SORTEIO DE VAGAS DE ESTACIONAMENTO',
+    `  Data/Hora   : ${ts.toLocaleString('pt-BR')}`,
+    `  Blocos      : ${b} → ${LETRAS.slice(0, b).join(', ')}`,
+    `  Andares     : ${an}    Aptos/andar: ${pa}    Total: ${total} aptos`,
+    `  Vagas sorteio: ${v}    Vagas PCD: ${pcdContemplados.length}    Lista espera: ${naoContemplados.length}`,
+    `  Semente      : ${seed}`,
+    sep, '',
+    col('VAGA',10) + col('IDENTIFICAÇÃO',14) + col('BLOCO',10) + col('ANDAR',12) + col('APTO',10) + 'STATUS',
+    sep2,
+    ...contemplados.map(c =>
+      col(c.vaga,10) + col(c.label,14) + col('Bloco '+c.bloco,10) + col(c.andar+'º andar',12) + col('Apto '+c.num,10) + 'Sorteado'
+    ),
+    '',
+    sep2,
+    '  ♿ VAGAS PCD — ATRIBUIÇÃO FIXA',
+    sep2,
+    ...pcdContemplados.map(c =>
+      col(c.vaga,10) + col(c.label,14) + col('Bloco '+c.bloco,10) + col(c.andar+'º andar',12) + col('Apto '+c.num,10) + 'PCD — Fixo'
+    ),
+  ];
+
+  if (naoContemplados.length) {
+    linhas.push('', sep2, `LISTA DE ESPERA — ${naoContemplados.length} apartamentos`, sep2);
+    naoContemplados.forEach((a, i) =>
+      linhas.push(`  ${String(i+1).padStart(3,'0')}  ${a.label}`)
+    );
+  }
+
+  linhas.push('', sep, '  Método: Fisher-Yates shuffle (duplo embaralhamento)', sep);
+
+  const blob = new Blob([linhas.join('\n')], { type: 'text/plain;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `sorteio_vagas_${ts.toISOString().slice(0,19).replace(/[T:]/g,'-')}.txt`;
+  a.click();
+}
+</script>
+</body>
+</html>
